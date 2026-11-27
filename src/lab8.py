@@ -1,32 +1,25 @@
 import psycopg2
 import os
 
-# --- DANGER ZONE ---
-# PASSWORD stored in plain text. This is not secure.
-# In a real-world application, use environment variables
-# or a secret management service.
-# For this lab, you can set an environment variable:
-# export DB_PASSWORD='your_password'
-# --- /DANGER ZONE ---
-
 # --- STUDENT TODO: ---
-# 1. Replace 'your_database' with the name of your database
-# 2. Replace 'your_user' with your database username (often 'postgres')
-# 3. Replace 'your_password' with your database password
-# 4. Replace 'your_host' with your database host (usually 'localhost')
-# 5. Replace 'your_port' with your database port (usually '5432' for PostgreSQL)
 
-DB_NAME = "your_database"
+DB_NAME = "online_shop"
 DB_USER = "postgres"
-DB_PASS = os.getenv("DB_PASSWORD", "your_password") # Fallback to insecure default
+DB_PASS = os.getenv("DB_PASSWORD", "rorty_pass")
 DB_HOST = "localhost"
 DB_PORT = "5432"
 
+
+def print_commands():
+    print("-------------------")
+    print("1. Insert")
+    print("2. Update")
+    print("3. Delete")
+    print("4. Select")
+    print("0. Exit")
+    print("-------------------\n")
+
 def main():
-    """
-    Main function to connect to the database and perform operations.
-    Students should modify this function to complete their lab assignments.
-    """
     conn = None  # Initialize conn to None
     try:
         # Establish the connection
@@ -41,65 +34,118 @@ def main():
         cur = conn.cursor()
 
         # --- STUDENT TODO: Task 3 - Create Table ---
-        # Write your SQL query to create a table.
-        # Example for 'students' table:
-        # create_table_query = """
-        # CREATE TABLE IF NOT EXISTS students (
-        #     id SERIAL PRIMARY KEY,
-        #     name VARCHAR(100) NOT NULL,
-        #     age INTEGER,
-        #     admission_date DATE
-        # );
-        # """
-        # cur.execute(create_table_query)
-        # conn.commit()
-        # print("Table 'students' created successfully.")
 
-        # --- STUDENT TODO: Task 4 - Insert Data ---
-        # Write your SQL query to insert data.
-        # Use executemany for multiple inserts.
-        # Example for 'students' table:
-        # insert_query = "INSERT INTO students (name, age, admission_date) VALUES (%s, %s, %s);"
-        # student_data = [
-        #     ('John Doe', 20, '2023-09-01'),
-        #     ('Jane Smith', 22, '2022-09-01'),
-        #     ('Alice Johnson', 19, '2024-09-01'),
-        #     ('Bob Williams', 21, '2023-09-01'),
-        #     ('Anna Brown', 20, '2022-09-01')
-        # ]
-        # cur.executemany(insert_query, student_data)
-        # conn.commit()
-        # print(f"{cur.rowcount} records inserted successfully.")
+        create_table_query = """
+             CREATE TABLE IF NOT EXISTS orders (
+             id SERIAL PRIMARY KEY,
+             client VARCHAR(100) NOT NULL,
+             order_number INTEGER,
+             order_date DATE,
+             sum_price INTEGER NOT NULL
+        );
+        """
+        cur.execute(create_table_query)
+        conn.commit()
+        print("Table 'orders' created successfully.")
 
-        # --- STUDENT TODO: Task 5 - Update Data ---
-        # Write your SQL query to update data.
-        # Example for 'students' table:
-        # update_query = "UPDATE students SET age = 21 WHERE name = 'John Doe';"
-        # cur.execute(update_query)
-        # conn.commit()
-        # print(f"{cur.rowcount} record(s) updated successfully.")
+        while True:
+            try:
+                print_commands()
+                command = input("Введіть команду")
+                if command == "0":
+                    break
+                elif command == "1":
+                    order_data = []
+                    while True:
+                        try:
+                            if len(order_data) != 0:
+                                choice = input("Додати ще? y/n")
+                                if choice == "n":
+                                    break
 
-        # --- STUDENT TODO: Task 6 - Delete Data ---
-        # Write your SQL query to delete data.
-        # Example for 'students' table:
-        # delete_query = "DELETE FROM students WHERE name = 'Jane Smith';"
-        # cur.execute(delete_query)
-        # conn.commit()
-        # print(f"{cur.rowcount} record(s) deleted successfully.")
+                            name = input("Введіть ім'я.")
+                            order = int(input("Введіть номер замовлення."))
+                            date = input("Введіть дату. (ex. 2026-11-26)")
+                            sum_price = int(input("Введіть суму замовлення."))
 
-        # --- STUDENT TODO: Task 7 - Select Data ---
-        # Write your SQL query to select data.
-        # Fetch and print the results.
-        # Example for 'students' table:
-        # select_query = "SELECT * FROM students ORDER BY age DESC;"
-        # cur.execute(select_query)
-        # records = cur.fetchall()
-        # print("\n--- Student Records ---")
-        # for record in records:
-        #     print(f"ID: {record[0]}, Name: {record[1]}, Age: {record[2]}, Admission Date: {record[3]}")
-        # print("-----------------------\n")
+                            order_data.append((name, order, date, sum_price))
+                        except ValueError:
+                            continue
+                        except KeyboardInterrupt:
+                            break
 
-        # Remember to close the cursor
+                    print(order_data)
+                    insert_query = "INSERT INTO orders (client, order_number, order_date, sum_price) VALUES (%s, %s, %s, %s)"
+                    cur.executemany(insert_query, order_data)
+                    conn.commit()
+                    print(f"{cur.rowcount} records inserted successfully.")
+                elif command == "2":
+                    change_param = input("Введіть який параметр змінити. (client/order_number/order_date/sum_price)")
+                    if not change_param in ("client", "order_number", "order_date", "sum_price"):
+                        raise ValueError("Невірна назва параметру.")
+
+                    change_value = input("Введіть нове значення параметру.")
+                    if change_param in ("client", "order_date"):
+                        change_value = f"'{change_value}'"
+                    else:
+                        change_value = int(change_value)
+
+                    search_param = input("Введіть який параметр шукати. (client/order_number/order_date/sum_price)")
+                    if not search_param in ("client", "order_number", "order_date", "sum_price"):
+                        raise ValueError("Невірна назва параметру.")
+
+                    search_value = input("Введіть значення шуканого параметру.")
+                    if search_param in ("client", "order_date"):
+                        search_value = f"'{search_value}'"
+                    else:
+                        search_value = int(search_value)
+
+                    if search_value == change_value and change_param == search_param:
+                        raise ValueError("Значення обох параметрів однакові")
+
+                    update_query = f"UPDATE orders SET {change_param} = {change_value} WHERE {search_param} = {search_value};"
+                    cur.execute(update_query)
+                    conn.commit()
+                    print(f"{cur.rowcount} record(s) updated successfully.")
+                elif command == "3":
+                    search_param = input("Введіть який параметр шукати. (client/order_number/order_date/sum_price)")
+                    if not search_param in ("client", "order_number", "order_date", "sum_price"):
+                        raise ValueError("Невірна назва параметру.")
+
+                    search_value = input("Введіть значення шуканого параметру.")
+                    if search_param in ("client", "order_date"):
+                        search_value = f"'{search_value}'"
+                    else:
+                        search_value = int(search_value)
+
+                    delete_query = f"DELETE FROM orders WHERE {search_param} = {search_value};"
+                    cur.execute(delete_query)
+                    conn.commit()
+                    print(f"{cur.rowcount} record(s) deleted successfully.")
+                elif command == "4":
+                    search_param = input("Введіть який параметр шукати. (client/order_number/order_date/sum_price)")
+                    if not search_param in ("client", "order_number", "order_date", "sum_price"):
+                        raise ValueError("Невірна назва параметру.")
+
+                    order_param = input("Введіть вид сортування. ASC/DESC")
+                    if not order_param in ("ASC", "DESC"):
+                        raise ValueError("Невірний тип сортування.")
+
+                    select_query = f"SELECT * FROM orders ORDER BY {search_param} {order_param};"
+                    cur.execute(select_query)
+                    records = cur.fetchall()
+                    print("\n--- Order Records ---")
+                    for record in records:
+                        print(
+                            f"Client: {record[1]}, Order ID: {record[2]}, Order Date: {record[3]}, Order Price: {record[4]}")
+                    print("-----------------------\n")
+            except ValueError as error:
+                print(error)
+                continue
+            except KeyboardInterrupt as error:
+                print(error)
+                break
+
         cur.close()
 
     except (Exception, psycopg2.DatabaseError) as error:
